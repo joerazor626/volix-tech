@@ -2,4 +2,4 @@
 
 Software Engineering & Digital Solutions — Suva, Fiji
 
-**[Visit Website](https://joerazor626.github.io/volix-tech/)**
+<a href="https://joerazor626.github.io/volix-tech/" target="_blank"><strong>Visit Website &rarr;</strong></a>
