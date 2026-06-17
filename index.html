@@ -21,528 +21,488 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/lenis@1.1.13/dist/lenis.css"
+    />
   </head>
   <body>
-    <!-- Cursor glow effect -->
-    <div class="cursor-glow" id="cursor-glow"></div>
+    <!-- Intro loader -->
+    <div class="loader" id="loader">
+      <div class="loader-bar"><span class="loader-fill" id="loader-fill"></span></div>
+      <div class="loader-meta">
+        <span class="loader-count" id="loader-count">0</span>%
+        <span class="loader-status" id="loader-status">Loading content</span>
+      </div>
+    </div>
 
-    <!-- Navigation -->
-    <nav class="nav" id="nav">
-      <div class="container nav-inner">
-        <a href="#" class="nav-logo">
-          <span class="logo-icon">V</span>
-          <span>volix<span class="text-accent">tech</span></span>
+    <!-- 3D hero background canvas -->
+    <canvas class="scene-canvas" id="scene-canvas" aria-hidden="true"></canvas>
+    <!-- Static fallback shown when WebGL/JS unavailable -->
+    <div class="scene-fallback" aria-hidden="true"></div>
+
+    <!-- HUD frame -->
+    <div class="hud" aria-hidden="true">
+      <span class="hud-corner hud-tl"></span>
+      <span class="hud-corner hud-tr"></span>
+      <span class="hud-corner hud-bl"></span>
+      <span class="hud-corner hud-br"></span>
+    </div>
+
+    <!-- Header -->
+    <header class="topbar" id="topbar">
+      <a href="#hero" class="brand" data-nav>
+        <span class="logo-icon">V</span>
+        <span class="brand-name">VOLIX<span class="text-accent">TECH</span></span>
+      </a>
+      <nav class="topbar-actions">
+        <a href="#contact" class="hud-btn" data-nav>
+          <span class="hud-btn-dot"></span> LOGIN
         </a>
-        <div class="nav-links" id="nav-links">
-          <a href="#projects">Projects</a>
-          <a href="#expertise">Expertise</a>
-          <a href="#team">Team</a>
-          <a href="#contact">Contact</a>
-        </div>
-        <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">
-          <span></span><span></span><span></span>
+        <button class="hud-btn hud-btn-light" id="menu-toggle" aria-label="Toggle menu">
+          <span class="menu-grid"></span> MENU
         </button>
-      </div>
-    </nav>
-
-    <!-- Hero -->
-    <header class="hero" id="hero">
-      <div class="hero-grid"></div>
-      <div class="container hero-content">
-        <div class="hero-badge">Based in Fiji, building for the Pacific</div>
-        <h1>
-          We build software<br />that
-          <span class="text-gradient">moves business</span><br />forward.
-        </h1>
-        <p class="hero-sub">
-          Volix Tech is a software engineering studio specialising in
-          production-ready web applications, financial systems, and digital
-          platforms.
-        </p>
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-value" data-count="6">0</span>
-            <span class="stat-label">Live Projects</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value" data-count="4">0</span>
-            <span class="stat-label">Organisations Served</span>
-          </div>
-          <div class="stat">
-            <span class="stat-value" data-count="3">0</span>
-            <span class="stat-label">Years in Production</span>
-          </div>
-        </div>
-        <div class="hero-cta">
-          <a href="#projects" class="btn btn-primary">View Our Work</a>
-          <a href="#contact" class="btn btn-outline">Get In Touch</a>
-        </div>
-      </div>
+      </nav>
     </header>
 
-    <!-- Projects -->
-    <section class="section" id="projects">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Portfolio</span>
-          <h2>Projects in Production</h2>
-          <p>
-            Real systems serving real users — from credit bureaus to deals
+    <!-- Vertical chapter side-nav -->
+    <nav class="sidenav" id="sidenav" aria-label="Section navigation">
+      <a href="#hero" class="sidenav-item" data-target="hero" data-nav>Future</a>
+      <a href="#projects" class="sidenav-item" data-target="projects" data-nav>Projects</a>
+      <a href="#expertise" class="sidenav-item" data-target="expertise" data-nav>Expertise</a>
+      <a href="#team" class="sidenav-item" data-target="team" data-nav>Team</a>
+      <a href="#clients" class="sidenav-item" data-target="clients" data-nav>Clients</a>
+      <a href="#contact" class="sidenav-item" data-target="contact" data-nav>Contact</a>
+    </nav>
+
+    <main id="main">
+      <!-- Hero / chapter 1 -->
+      <header class="hero chapter" id="hero">
+        <div class="chapter-inner">
+          <div class="hero-badge">// Based in Fiji, building for the Pacific</div>
+          <h1>
+            WE BUILD SOFTWARE<br />THAT
+            <span class="text-gradient">MOVES BUSINESS</span><br />FORWARD
+          </h1>
+          <p class="hero-sub">
+            Volix Tech is a software engineering studio specialising in
+            production-ready web applications, financial systems, and digital
             platforms.
           </p>
-        </div>
-
-        <div class="projects-grid">
-          <!-- CIRA WIN v3 -->
-          <div class="project-card project-featured">
-            <div class="project-badge">Enterprise</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
-              </svg>
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-value" data-count="6">0</span>
+              <span class="stat-label">Live Projects</span>
             </div>
-            <h3>CIRA WIN System v3</h3>
-            <p class="project-client">
-              CIRA PTE Limited — Credit Information Reporting Agency
-            </p>
-            <p class="project-desc">
-              Fiji's national credit information reporting platform. Serves 14+
-              financial institutions with real-time credit report generation,
-              member management, and regulatory compliance under the Fair
-              Reporting of Credit Act 2016.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 10</span>
-              <span>Livewire</span>
-              <span>MySQL</span>
-              <span>Passport</span>
-              <span>PDF Generation</span>
+            <div class="stat">
+              <span class="stat-value" data-count="4">0</span>
+              <span class="stat-label">Organisations Served</span>
             </div>
-            <div class="project-meta">
-              <span>www.cira.com.fj</span>
-              <span>In Production</span>
+            <div class="stat">
+              <span class="stat-value" data-count="3">0</span>
+              <span class="stat-label">Years in Production</span>
             </div>
           </div>
-
-          <!-- CIRA Credit Score -->
-          <div class="project-card">
-            <div class="project-badge">FinTech</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <h3>Credit Scoring System</h3>
-            <p class="project-client">
-              CIRA PTE Limited — Sponsored by Australian Aid / MDF
-            </p>
-            <p class="project-desc">
-              Dual-pillar credit scoring engine — Traditional (payment history,
-              utilisation, age) and Psychometric (40-question assessment for
-              thin-file applicants). Score range 300-850, industry standard.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 12</span>
-              <span>REST API</span>
-              <span>MySQL</span>
-              <span>Sanctum</span>
-            </div>
-            <div class="project-meta">
-              <span>14 Member Institutions</span>
-              <span>Integration Phase</span>
-            </div>
-          </div>
-
-          <!-- Voliya -->
-          <div class="project-card">
-            <div class="project-badge">SaaS</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-            <h3>Voliya — Deals Platform</h3>
-            <p class="project-client">Volix Tech — voliya.online</p>
-            <p class="project-desc">
-              Fiji's deals and promotions aggregator. Businesses create
-              promotions and flyers; consumers browse deals with
-              geofence-triggered notifications, push alerts, and location-based
-              discovery.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 12</span>
-              <span>React</span>
-              <span>PostgreSQL</span>
-              <span>MongoDB</span>
-              <span>Redis</span>
-              <span>Web Push</span>
-            </div>
-            <div class="project-meta">
-              <span>voliya.online</span>
-              <span>Active Development</span>
-            </div>
-          </div>
-
-          <!-- MCIF Admin -->
-          <div class="project-card">
-            <div class="project-badge">Admin System</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            <h3>MCIF Admin System</h3>
-            <p class="project-client">Methodist Church in Fiji</p>
-            <p class="project-desc">
-              Ministerial administration platform with appointment scheduling,
-              role-based access control, calendar management, and member data
-              management for church leadership.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 11</span>
-              <span>AdminLTE</span>
-              <span>MySQL</span>
-              <span>Calendar API</span>
-            </div>
-            <div class="project-meta">
-              <span>mcif.ministers.com.fj</span>
-              <span>In Production</span>
-            </div>
-          </div>
-
-          <!-- TC Labasa -->
-          <div class="project-card">
-            <div class="project-badge">Community</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
-            <h3>TC Labasa HRMS</h3>
-            <p class="project-client">Labasa Methodist Church</p>
-            <p class="project-desc">
-              Human resource management system for community and member
-              administration, featuring geofencing support, data management, and
-              role-based navigation.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 12</span>
-              <span>AdminLTE</span>
-              <span>MySQL</span>
-              <span>Geofencing</span>
-            </div>
-            <div class="project-meta">
-              <span>Labasa, Fiji</span>
-              <span>Active Development</span>
-            </div>
-          </div>
-
-          <!-- Demo Bank -->
-          <div class="project-card">
-            <div class="project-badge">Demo</div>
-            <div class="project-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-              >
-                <path
-                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                />
-              </svg>
-            </div>
-            <h3>Demo Bank Loan System</h3>
-            <p class="project-client">CIRA PTE Limited — Integration Testing</p>
-            <p class="project-desc">
-              Bank loan application system integrated with CIRA credit scoring
-              API. Used by financial institutions to test credit score
-              integration before production deployment.
-            </p>
-            <div class="project-tech">
-              <span>Laravel 11</span>
-              <span>Chart.js</span>
-              <span>MySQL</span>
-              <span>CIRA API</span>
-            </div>
-            <div class="project-meta">
-              <span>Testing Environment</span>
-              <span>Active</span>
-            </div>
+          <div class="hero-cta">
+            <a href="#projects" class="hud-btn hud-btn-cta" data-nav>
+              <span class="hud-btn-dot"></span> Explore Our Work
+            </a>
+            <a href="#contact" class="hud-btn" data-nav>Get In Touch</a>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Expertise -->
-    <section class="section section-dark" id="expertise">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Capabilities</span>
-          <h2>What We Work With</h2>
-          <p>
-            Full-stack engineering with a focus on reliability, security, and
-            scale.
-          </p>
+        <div class="scroll-cue">
+          <span class="scroll-cue-arrow">↓</span> Scroll to explore
         </div>
+      </header>
 
-        <div class="expertise-grid">
-          <div class="expertise-group">
-            <h3>Backend</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="expert">PHP 8.x</span>
-              <span class="skill" data-level="expert">Laravel 10-12</span>
-              <span class="skill" data-level="advanced">REST API Design</span>
-              <span class="skill" data-level="advanced"
-                >Sanctum / Passport</span
-              >
-              <span class="skill" data-level="advanced">Queue Workers</span>
-              <span class="skill" data-level="advanced">Livewire</span>
-              <span class="skill" data-level="intermediate">Node.js</span>
-            </div>
-          </div>
-
-          <div class="expertise-group">
-            <h3>Frontend</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="expert">React</span>
-              <span class="skill" data-level="expert">Tailwind CSS</span>
-              <span class="skill" data-level="advanced">Vite</span>
-              <span class="skill" data-level="advanced">Blade Templates</span>
-              <span class="skill" data-level="advanced"
-                >Bootstrap / AdminLTE</span
-              >
-              <span class="skill" data-level="intermediate">Alpine.js</span>
-            </div>
-          </div>
-
-          <div class="expertise-group">
-            <h3>Databases</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="expert">MySQL</span>
-              <span class="skill" data-level="expert">PostgreSQL</span>
-              <span class="skill" data-level="advanced">MongoDB</span>
-              <span class="skill" data-level="advanced">Redis</span>
-              <span class="skill" data-level="advanced">Database Design</span>
-            </div>
-          </div>
-
-          <div class="expertise-group">
-            <h3>Infrastructure</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="advanced">Linux / Ubuntu</span>
-              <span class="skill" data-level="advanced">Nginx / Caddy</span>
-              <span class="skill" data-level="advanced">Git / GitHub</span>
-              <span class="skill" data-level="intermediate">Docker</span>
-              <span class="skill" data-level="intermediate">CI/CD</span>
-              <span class="skill" data-level="advanced">SSL / HTTPS</span>
-            </div>
-          </div>
-
-          <div class="expertise-group">
-            <h3>Specialisations</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="expert"
-                >Credit Reporting Systems</span
-              >
-              <span class="skill" data-level="expert"
-                >Financial Compliance</span
-              >
-              <span class="skill" data-level="advanced"
-                >Geofencing / Location</span
-              >
-              <span class="skill" data-level="advanced"
-                >Push Notifications</span
-              >
-              <span class="skill" data-level="advanced">PDF Generation</span>
-              <span class="skill" data-level="advanced">SaaS Architecture</span>
-            </div>
-          </div>
-
-          <div class="expertise-group">
-            <h3>Quality Attributes</h3>
-            <div class="skill-tags">
-              <span class="skill" data-level="expert">Security (OWASP)</span>
-              <span class="skill" data-level="expert">Performance</span>
-              <span class="skill" data-level="advanced">SEO Optimisation</span>
-              <span class="skill" data-level="advanced">Accessibility</span>
-              <span class="skill" data-level="advanced">Responsive Design</span>
-              <span class="skill" data-level="advanced">API Design</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Team -->
-    <section class="section" id="team">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Team</span>
-          <h2>Who We Are</h2>
-          <p>A focused studio delivering high-impact software from Fiji.</p>
-        </div>
-
-        <div class="team-grid">
-          <div class="team-card">
-            <div class="team-avatar">JR</div>
-            <h3>Jokatama Rabukuivalu</h3>
-            <p class="team-role">Director & Lead Engineer</p>
-            <p class="team-bio">
-              Full-stack software engineer with deep expertise in financial
-              systems, credit reporting infrastructure, and SaaS platform
-              development. Building production systems that serve organisations
-              across Fiji and the Pacific.
+      <!-- Projects -->
+      <section class="section" id="projects">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">// Portfolio</span>
+            <h2>Projects in Production</h2>
+            <p>
+              Real systems serving real users — from credit bureaus to deals
+              platforms.
             </p>
-            <div class="team-links">
-              <a
-                href="https://github.com/jrabukuivalu"
-                target="_blank"
-                rel="noopener"
-                aria-label="GitHub"
-              >
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-                  />
+          </div>
+
+          <div class="projects-grid">
+            <!-- CIRA WIN v3 -->
+            <div class="project-card project-featured">
+              <div class="project-badge">Enterprise</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-              </a>
+              </div>
+              <h3>CIRA WIN System v3</h3>
+              <p class="project-client">
+                CIRA PTE Limited — Credit Information Reporting Agency
+              </p>
+              <p class="project-desc">
+                Fiji's national credit information reporting platform. Serves 14+
+                financial institutions with real-time credit report generation,
+                member management, and regulatory compliance under the Fair
+                Reporting of Credit Act 2016.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 10</span>
+                <span>Livewire</span>
+                <span>MySQL</span>
+                <span>Passport</span>
+                <span>PDF Generation</span>
+              </div>
+              <div class="project-meta">
+                <span>www.cira.com.fj</span>
+                <span>In Production</span>
+              </div>
+            </div>
+
+            <!-- CIRA Credit Score -->
+            <div class="project-card">
+              <div class="project-badge">FinTech</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3>Credit Scoring System</h3>
+              <p class="project-client">
+                CIRA PTE Limited — Sponsored by Australian Aid / MDF
+              </p>
+              <p class="project-desc">
+                Dual-pillar credit scoring engine — Traditional (payment history,
+                utilisation, age) and Psychometric (40-question assessment for
+                thin-file applicants). Score range 300-850, industry standard.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 12</span>
+                <span>REST API</span>
+                <span>MySQL</span>
+                <span>Sanctum</span>
+              </div>
+              <div class="project-meta">
+                <span>14 Member Institutions</span>
+                <span>Integration Phase</span>
+              </div>
+            </div>
+
+            <!-- Voliya -->
+            <div class="project-card">
+              <div class="project-badge">SaaS</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <h3>Voliya — Deals Platform</h3>
+              <p class="project-client">Volix Tech — voliya.online</p>
+              <p class="project-desc">
+                Fiji's deals and promotions aggregator. Businesses create
+                promotions and flyers; consumers browse deals with
+                geofence-triggered notifications, push alerts, and location-based
+                discovery.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 12</span>
+                <span>React</span>
+                <span>PostgreSQL</span>
+                <span>MongoDB</span>
+                <span>Redis</span>
+                <span>Web Push</span>
+              </div>
+              <div class="project-meta">
+                <span>voliya.online</span>
+                <span>Active Development</span>
+              </div>
+            </div>
+
+            <!-- MCIF Admin -->
+            <div class="project-card">
+              <div class="project-badge">Admin System</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3>MCIF Admin System</h3>
+              <p class="project-client">Methodist Church in Fiji</p>
+              <p class="project-desc">
+                Ministerial administration platform with appointment scheduling,
+                role-based access control, calendar management, and member data
+                management for church leadership.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 11</span>
+                <span>AdminLTE</span>
+                <span>MySQL</span>
+                <span>Calendar API</span>
+              </div>
+              <div class="project-meta">
+                <span>mcif.ministers.com.fj</span>
+                <span>In Production</span>
+              </div>
+            </div>
+
+            <!-- TC Labasa -->
+            <div class="project-card">
+              <div class="project-badge">Community</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3>TC Labasa HRMS</h3>
+              <p class="project-client">Labasa Methodist Church</p>
+              <p class="project-desc">
+                Human resource management system for community and member
+                administration, featuring geofencing support, data management, and
+                role-based navigation.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 12</span>
+                <span>AdminLTE</span>
+                <span>MySQL</span>
+                <span>Geofencing</span>
+              </div>
+              <div class="project-meta">
+                <span>Labasa, Fiji</span>
+                <span>Active Development</span>
+              </div>
+            </div>
+
+            <!-- Demo Bank -->
+            <div class="project-card">
+              <div class="project-badge">Demo</div>
+              <div class="project-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <h3>Demo Bank Loan System</h3>
+              <p class="project-client">CIRA PTE Limited — Integration Testing</p>
+              <p class="project-desc">
+                Bank loan application system integrated with CIRA credit scoring
+                API. Used by financial institutions to test credit score
+                integration before production deployment.
+              </p>
+              <div class="project-tech">
+                <span>Laravel 11</span>
+                <span>Chart.js</span>
+                <span>MySQL</span>
+                <span>CIRA API</span>
+              </div>
+              <div class="project-meta">
+                <span>Testing Environment</span>
+                <span>Active</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Clients -->
-    <section class="section section-dark" id="clients">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Trusted By</span>
-          <h2>Organisations We Serve</h2>
-        </div>
-        <div class="clients-grid">
-          <div class="client-card">
-            <strong>CIRA PTE Limited</strong>
-            <span>Credit Information Reporting Agency of Fiji</span>
+      <!-- Expertise -->
+      <section class="section section-dark" id="expertise">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">// Capabilities</span>
+            <h2>What We Work With</h2>
+            <p>
+              Full-stack engineering with a focus on reliability, security, and
+              scale.
+            </p>
           </div>
-          <div class="client-card">
-            <strong>Methodist Church in Fiji</strong>
-            <span>Church Administration & HRMS</span>
-          </div>
-          <div class="client-card">
-            <strong>Market Development Facility</strong>
-            <span>Australian Aid — Credit Scoring Sponsor</span>
-          </div>
-          <div class="client-card">
-            <strong>Reserve Bank of Fiji</strong>
-            <span>Regulatory Compliance Partner</span>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Contact -->
-    <section class="section" id="contact">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-tag">Get In Touch</span>
-          <h2>Let's Build Something</h2>
-          <p>Have a project in mind? We'd love to hear about it.</p>
-        </div>
-        <div class="contact-grid">
-          <div class="contact-card">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <path
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-            <h3>Email</h3>
-            <a href="mailto:hello@volixtech.com">joka@volia.online </a>
-          </div>
-          <div class="contact-card">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <path
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-              <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <h3>Location</h3>
-            <span>Suva, Fiji Islands</span>
-          </div>
-          <div class="contact-card">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-              />
-            </svg>
-            <h3>GitHub</h3>
-            <a
-              href="https://github.com/joerazor626"
-              target="_blank"
-              rel="noopener"
-              >github.com/joerazor626</a
-            >
-          </div>
-        </div>
-      </div>
-    </section>
+          <div class="expertise-grid">
+            <div class="expertise-group">
+              <h3>Backend</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="expert">PHP 8.x</span>
+                <span class="skill" data-level="expert">Laravel 10-12</span>
+                <span class="skill" data-level="advanced">REST API Design</span>
+                <span class="skill" data-level="advanced">Sanctum / Passport</span>
+                <span class="skill" data-level="advanced">Queue Workers</span>
+                <span class="skill" data-level="advanced">Livewire</span>
+                <span class="skill" data-level="intermediate">Node.js</span>
+              </div>
+            </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <div class="container footer-inner">
-        <div class="footer-brand">
-          <span class="logo-icon">V</span>
-          <span>volix<span class="text-accent">tech</span></span>
-        </div>
-        <p>&copy; 2026 Volix Tech. Suva, Fiji.</p>
-      </div>
-    </footer>
+            <div class="expertise-group">
+              <h3>Frontend</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="expert">React</span>
+                <span class="skill" data-level="expert">Tailwind CSS</span>
+                <span class="skill" data-level="advanced">Vite</span>
+                <span class="skill" data-level="advanced">Blade Templates</span>
+                <span class="skill" data-level="advanced">Bootstrap / AdminLTE</span>
+                <span class="skill" data-level="intermediate">Alpine.js</span>
+              </div>
+            </div>
 
+            <div class="expertise-group">
+              <h3>Databases</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="expert">MySQL</span>
+                <span class="skill" data-level="expert">PostgreSQL</span>
+                <span class="skill" data-level="advanced">MongoDB</span>
+                <span class="skill" data-level="advanced">Redis</span>
+                <span class="skill" data-level="advanced">Database Design</span>
+              </div>
+            </div>
+
+            <div class="expertise-group">
+              <h3>Infrastructure</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="advanced">Linux / Ubuntu</span>
+                <span class="skill" data-level="advanced">Nginx / Caddy</span>
+                <span class="skill" data-level="advanced">Git / GitHub</span>
+                <span class="skill" data-level="intermediate">Docker</span>
+                <span class="skill" data-level="intermediate">CI/CD</span>
+                <span class="skill" data-level="advanced">SSL / HTTPS</span>
+              </div>
+            </div>
+
+            <div class="expertise-group">
+              <h3>Specialisations</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="expert">Credit Reporting Systems</span>
+                <span class="skill" data-level="expert">Financial Compliance</span>
+                <span class="skill" data-level="advanced">Geofencing / Location</span>
+                <span class="skill" data-level="advanced">Push Notifications</span>
+                <span class="skill" data-level="advanced">PDF Generation</span>
+                <span class="skill" data-level="advanced">SaaS Architecture</span>
+              </div>
+            </div>
+
+            <div class="expertise-group">
+              <h3>Quality Attributes</h3>
+              <div class="skill-tags">
+                <span class="skill" data-level="expert">Security (OWASP)</span>
+                <span class="skill" data-level="expert">Performance</span>
+                <span class="skill" data-level="advanced">SEO Optimisation</span>
+                <span class="skill" data-level="advanced">Accessibility</span>
+                <span class="skill" data-level="advanced">Responsive Design</span>
+                <span class="skill" data-level="advanced">API Design</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Team -->
+      <section class="section" id="team">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">// Team</span>
+            <h2>Who We Are</h2>
+            <p>A focused studio delivering high-impact software from Fiji.</p>
+          </div>
+
+          <div class="team-grid">
+            <div class="team-card">
+              <div class="team-avatar">JR</div>
+              <h3>Jokatama Rabukuivalu</h3>
+              <p class="team-role">Director & Lead Engineer</p>
+              <p class="team-bio">
+                Full-stack software engineer with deep expertise in financial
+                systems, credit reporting infrastructure, and SaaS platform
+                development. Building production systems that serve organisations
+                across Fiji and the Pacific.
+              </p>
+              <div class="team-links">
+                <a href="https://github.com/jrabukuivalu" target="_blank" rel="noopener" aria-label="GitHub">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Clients -->
+      <section class="section section-dark" id="clients">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">// Trusted By</span>
+            <h2>Organisations We Serve</h2>
+          </div>
+          <div class="clients-grid">
+            <div class="client-card">
+              <strong>CIRA PTE Limited</strong>
+              <span>Credit Information Reporting Agency of Fiji</span>
+            </div>
+            <div class="client-card">
+              <strong>Methodist Church in Fiji</strong>
+              <span>Church Administration & HRMS</span>
+            </div>
+            <div class="client-card">
+              <strong>Market Development Facility</strong>
+              <span>Australian Aid — Credit Scoring Sponsor</span>
+            </div>
+            <div class="client-card">
+              <strong>Reserve Bank of Fiji</strong>
+              <span>Regulatory Compliance Partner</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="section" id="contact">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">// Get In Touch</span>
+            <h2>Let's Build Something</h2>
+            <p>Have a project in mind? We'd love to hear about it.</p>
+          </div>
+          <div class="contact-grid">
+            <div class="contact-card">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <h3>Email</h3>
+              <a href="mailto:joka@volia.online">joka@volia.online</a>
+            </div>
+            <div class="contact-card">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <h3>Location</h3>
+              <span>Suva, Fiji Islands</span>
+            </div>
+            <div class="contact-card">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+              <h3>GitHub</h3>
+              <a href="https://github.com/joerazor626" target="_blank" rel="noopener">github.com/joerazor626</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-inner">
+          <span class="footer-url">WWW.VOLIXTECH.COM</span>
+          <p>&copy; 2026 Volix Tech. Suva, Fiji.</p>
+        </div>
+      </footer>
+    </main>
+
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+    <script type="importmap">
+      { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
+    <script type="module" src="scene.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
