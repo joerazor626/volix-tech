@@ -94,8 +94,15 @@
         menuToggle.addEventListener('click', function () {
             setMenu(!menuOverlay.classList.contains('menu-open'));
         });
+        // Overlay links: close the menu first (restarts Lenis), then scroll.
+        // The shared [data-nav] handler calls preventDefault, so we own the scroll here.
         menuOverlay.querySelectorAll('a[data-nav]').forEach(function (a) {
-            a.addEventListener('click', function () { setMenu(false); });
+            a.addEventListener('click', function () {
+                var target = document.querySelector(a.getAttribute('href'));
+                setMenu(false);
+                if (!target) return;
+                requestAnimationFrame(function () { scrollToTarget(target); });
+            });
         });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') setMenu(false);
