@@ -72,20 +72,33 @@
     }
 
     // ----------------------------------------
-    // Menu toggle (reveals the side-nav on small screens)
+    // Full-screen menu overlay
     // ----------------------------------------
     var menuToggle = document.getElementById('menu-toggle');
-    var sidenav = document.getElementById('sidenav');
-    if (menuToggle && sidenav) {
+    var menuOverlay = document.getElementById('menu-overlay');
+    var menuLabel = menuToggle && menuToggle.querySelector('.menu-label');
+
+    function setMenu(open) {
+        if (!menuToggle || !menuOverlay) return;
+        menuOverlay.classList.toggle('menu-open', open);
+        menuToggle.classList.toggle('is-active', open);
+        document.body.classList.toggle('menu-active', open);
+        menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menuOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (menuLabel) menuLabel.textContent = open ? 'CLOSE' : 'MENU';
+        // Lenis can keep scrolling underneath the overlay — stop/start it
+        if (lenis) { open ? lenis.stop() : lenis.start(); }
+    }
+
+    if (menuToggle && menuOverlay) {
         menuToggle.addEventListener('click', function () {
-            sidenav.classList.toggle('sidenav-open');
-            menuToggle.classList.toggle('is-active');
+            setMenu(!menuOverlay.classList.contains('menu-open'));
         });
-        sidenav.querySelectorAll('a').forEach(function (a) {
-            a.addEventListener('click', function () {
-                sidenav.classList.remove('sidenav-open');
-                menuToggle.classList.remove('is-active');
-            });
+        menuOverlay.querySelectorAll('a[data-nav]').forEach(function (a) {
+            a.addEventListener('click', function () { setMenu(false); });
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') setMenu(false);
         });
     }
 

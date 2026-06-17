@@ -60,14 +60,33 @@
         <span class="brand-name">VOLIX<span class="text-accent">TECH</span></span>
       </a>
       <nav class="topbar-actions">
-        <a href="#contact" class="hud-btn" data-nav>
-          <span class="hud-btn-dot"></span> LOGIN
-        </a>
-        <button class="hud-btn hud-btn-light" id="menu-toggle" aria-label="Toggle menu">
-          <span class="menu-grid"></span> MENU
+        <button
+          class="hud-btn hud-btn-light"
+          id="menu-toggle"
+          aria-label="Toggle menu"
+          aria-expanded="false"
+          aria-controls="menu-overlay"
+        >
+          <span class="menu-grid"></span> <span class="menu-label">MENU</span>
         </button>
       </nav>
     </header>
+
+    <!-- Full-screen menu overlay -->
+    <div class="menu-overlay" id="menu-overlay" aria-hidden="true">
+      <nav class="menu-overlay-nav" aria-label="Main menu">
+        <a href="#hero" class="menu-link" data-nav><span class="menu-link-no">01</span> Home</a>
+        <a href="#projects" class="menu-link" data-nav><span class="menu-link-no">02</span> Projects</a>
+        <a href="#expertise" class="menu-link" data-nav><span class="menu-link-no">03</span> Expertise</a>
+        <a href="#team" class="menu-link" data-nav><span class="menu-link-no">04</span> Team</a>
+        <a href="#clients" class="menu-link" data-nav><span class="menu-link-no">05</span> Clients</a>
+        <a href="#contact" class="menu-link" data-nav><span class="menu-link-no">06</span> Contact</a>
+      </nav>
+      <div class="menu-overlay-foot">
+        <a href="mailto:joka@volia.online">joka@volia.online</a>
+        <span>Suva, Fiji Islands</span>
+      </div>
+    </div>
 
     <!-- Vertical chapter side-nav -->
     <nav class="sidenav" id="sidenav" aria-label="Section navigation">
