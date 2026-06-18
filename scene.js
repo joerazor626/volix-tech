@@ -234,9 +234,9 @@ import * as THREE from 'three';
   }
 
   const starLayers = [
-    makeStarLayer(420, 70, 0.05, 0x818cf8, 0.85, 2.4, 1000),   // near — bright, fast
-    makeStarLayer(620, 90, 0.032, 0xc7d2fe, 0.6, 1.4, 4000),   // mid
-    makeStarLayer(900, 120, 0.02, 0x8b93c9, 0.4, 0.7, 8000),   // far — dim, slow
+    makeStarLayer(420, 70, 0.05, 0x818cf8, 0.85, 1.5, 1000),   // near — bright, fast
+    makeStarLayer(620, 90, 0.032, 0xc7d2fe, 0.6, 0.9, 4000),   // mid
+    makeStarLayer(900, 120, 0.02, 0x8b93c9, 0.4, 0.45, 8000),  // far — dim, slow
   ];
 
   // Faint nebula glow drifting behind the stars for "universe" depth
@@ -316,7 +316,7 @@ import * as THREE from 'three';
     );
     group.rotation.set(rand(seedBase + 10) * 1.2 - 0.6, rand(seedBase + 11) * Math.PI, rand(seedBase + 12) * 0.6 - 0.3);
     scene.add(group);
-    return { group: group, spin: 0.04 + rand(seedBase + 13) * 0.06 };
+    return { group: group, spin: 0.025 + rand(seedBase + 13) * 0.04 };
   }
 
   const galaxies = [];
@@ -451,9 +451,9 @@ import * as THREE from 'three';
 
     // Whole assembled cube gently breathes/rotates once built
     if (!reduceMotion) {
-      moduleGroup.rotation.y += dt * (0.12 + assembly * 0.18);
-      moduleGroup.rotation.x = Math.sin(t * 0.4) * 0.12 * assembly;
-      const breathe = 1 + Math.sin(t * 1.2) * 0.015 * assembly;
+      moduleGroup.rotation.y += dt * (0.08 + assembly * 0.11);
+      moduleGroup.rotation.x = Math.sin(t * 0.28) * 0.1 * assembly;
+      const breathe = 1 + Math.sin(t * 0.85) * 0.015 * assembly;
       // Keep the cube smaller/further back while dispersed (so it doesn't
       // overlap the hero text), growing forward as it assembles.
       const grow = 0.62 + assembly * 0.38;
@@ -467,7 +467,7 @@ import * as THREE from 'three';
     scrollVel *= 0.9;                            // decay between scroll events
     if (!reduceMotion) {
       const halfDepth = STAR_DEPTH / 2;
-      const boost = 1 + warp * 14;               // up to ~15x speed while scrolling
+      const boost = 1 + warp * 10;               // up to ~11x speed while scrolling
       for (let l = 0; l < starLayers.length; l++) {
         const layer = starLayers[l];
         const arr = layer.geo.attributes.position.array;
@@ -487,7 +487,7 @@ import * as THREE from 'three';
     // Galaxies: drift toward the camera (boosted by scroll warp) and wrap.
     // They swell as they approach, so scrolling = travelling toward galaxies.
     if (!reduceMotion) {
-      const galStep = (1.6 + warp * 26) * dt;     // slow idle, fast on scroll
+      const galStep = (1.0 + warp * 18) * dt;     // slow idle, faster on scroll
       for (let i = 0; i < galaxies.length; i++) {
         const gx = galaxies[i];
         gx.group.position.z += galStep;
