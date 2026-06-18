@@ -409,8 +409,10 @@ import * as THREE from 'three';
     frameCore.material.opacity = frameP * 0.9;
     frameGlow.material.opacity = frameP * (0.35 + Math.sin(t * 1.6) * 0.12);
 
-    // ----- Ping signals between random modules (once mostly assembled) -----
-    if (!reduceMotion && assembly > 0.55) {
+    // ----- Ping signals between random modules -----
+    // Fire at any assembly level, including while the boxes float on load,
+    // so signals dart between pieces before and after the cube forms.
+    if (!reduceMotion) {
       if (t >= nextPingAt) {
         firePing();
         nextPingAt = t + 0.6 + rand(t * 7.3) * 1.6;   // random cadence ~0.6–2.2s
@@ -419,7 +421,9 @@ import * as THREE from 'three';
         const pg = pings[i];
         if (!pg.active) continue;
         pg.t += dt / pg.dur;
-        const a = pg.a.target, b = pg.b.target;
+        // Use the modules' LIVE positions so links track the boxes as they
+        // float/assemble (not their fixed assembled targets).
+        const a = pg.a.mesh.position, b = pg.b.mesh.position;
         // Connecting line
         const arr = pg.lineGeo.attributes.position.array;
         arr[0] = a.x; arr[1] = a.y; arr[2] = a.z;
@@ -427,11 +431,11 @@ import * as THREE from 'three';
         pg.lineGeo.attributes.position.needsUpdate = true;
         // Pulse intensity rises then falls over the link's life
         const env = Math.sin(Math.min(pg.t, 1) * Math.PI);
-        pg.line.material.opacity = env * 0.5 * frameP;
+        pg.line.material.opacity = env * 0.5;
         // Travelling dot from A -> B
         _v.copy(a).lerp(b, Math.min(pg.t, 1));
         pg.dot.position.copy(_v);
-        pg.dot.material.opacity = env * frameP;
+        pg.dot.material.opacity = env;
         const s = 0.4 + env * 0.4;
         pg.dot.scale.set(s, s, 1);
         // Flash the endpoints as the pulse departs / arrives
