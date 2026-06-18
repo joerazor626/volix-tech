@@ -195,6 +195,80 @@ import * as THREE from 'three';
   nebula.position.z = -30;
   scene.add(nebula);
 
+  // ----- Galaxies: distant spiral clusters we travel toward on scroll -----
+  // Each galaxy is a flattened spiral of points + a soft glow core sprite.
+  // They sit deep in Z, drift toward the camera (boosted by scroll warp),
+  // and wrap back when they pass — so scrolling feels like approaching them.
+  const GALAXY_FARZ = -120;            // spawn depth (far back)
+  const GALAXY_PASSZ = 9;              // past this they wrap to the back
+
+  // Soft radial glow texture for galaxy cores
+  function makeGlowTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d');
+    const grd = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, 'rgba(199,210,254,0.9)');
+    grd.addColorStop(0.3, 'rgba(129,140,248,0.45)');
+    grd.addColorStop(1, 'rgba(99,102,241,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }
+  const glowTex = makeGlowTexture();
+  const GAL_COLORS = [0x818cf8, 0x22d3ee, 0xc084fc, 0xa5b4fc];
+
+  function makeGalaxy(seedBase, idx) {
+    const group = new THREE.Group();
+    const STARS = 1400;
+    const ARMS = 3 + Math.floor(rand(seedBase) * 2);    // 3-4 spiral arms
+    const RADIUS = 5 + rand(seedBase + 1) * 4;
+    const pos = new Float32Array(STARS * 3);
+    for (let i = 0; i < STARS; i++) {
+      const r = Math.pow(rand(seedBase + i + 2), 0.6) * RADIUS;
+      const arm = i % ARMS;
+      // angle = base arm offset + spiral winding + a little scatter
+      const ang = (arm / ARMS) * Math.PI * 2 + r * 0.6 + (rand(seedBase + i + 50) - 0.5) * 0.5;
+      const spread = (rand(seedBase + i + 90) - 0.5) * 0.6;
+      pos[i * 3 + 0] = Math.cos(ang) * r + spread;
+      pos[i * 3 + 1] = (rand(seedBase + i + 120) - 0.5) * 0.7;  // thin disk
+      pos[i * 3 + 2] = Math.sin(ang) * r + spread;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const disk = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({
+        color: GAL_COLORS[idx % GAL_COLORS.length],
+        size: 0.06, transparent: true, opacity: 0.8,
+        sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      })
+    );
+    group.add(disk);
+
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, color: GAL_COLORS[idx % GAL_COLORS.length],
+      transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    core.scale.set(RADIUS * 1.6, RADIUS * 1.6, 1);
+    group.add(core);
+
+    // Random position & tilt, staggered through the depth range
+    group.position.set(
+      (rand(seedBase + 7) - 0.5) * 36,
+      (rand(seedBase + 8) - 0.5) * 22,
+      GALAXY_FARZ + idx * 34 + rand(seedBase + 9) * 20
+    );
+    group.rotation.set(rand(seedBase + 10) * 1.2 - 0.6, rand(seedBase + 11) * Math.PI, rand(seedBase + 12) * 0.6 - 0.3);
+    scene.add(group);
+    return { group: group, spin: 0.04 + rand(seedBase + 13) * 0.06 };
+  }
+
+  const galaxies = [];
+  const GALAXY_COUNT = 4;
+  for (let i = 0; i < GALAXY_COUNT; i++) galaxies.push(makeGalaxy(2000 + i * 137, i));
+  const galaxyRange = Math.abs(GALAXY_FARZ - GALAXY_PASSZ);
+
   // ----- Scroll-driven assembly progress -----
   // Spread the build across the WHOLE page: 0 at the very top (dispersed),
   // 1 at the bottom (cube fully formed + glowing). The modules lock in
@@ -311,6 +385,26 @@ import * as THREE from 'three';
       // Stars stretch into streaks during warp for the "into space" feel
       starLayers[0].points.material.size = 0.05 * (1 + warp * 2.5);
       nebula.rotation.z += dt * 0.008;
+    }
+
+    // Galaxies: drift toward the camera (boosted by scroll warp) and wrap.
+    // They swell as they approach, so scrolling = travelling toward galaxies.
+    if (!reduceMotion) {
+      const galStep = (1.6 + warp * 26) * dt;     // slow idle, fast on scroll
+      for (let i = 0; i < galaxies.length; i++) {
+        const gx = galaxies[i];
+        gx.group.position.z += galStep;
+        if (gx.group.position.z > GALAXY_PASSZ) {
+          gx.group.position.z -= galaxyRange;     // wrap far behind
+          gx.group.position.x = (rand(3000 + i + Math.floor(t)) - 0.5) * 36;
+          gx.group.position.y = (rand(3100 + i + Math.floor(t)) - 0.5) * 22;
+        }
+        gx.group.rotation.y += dt * gx.spin;      // spin the disk
+        // Fade in from the deep distance so they emerge rather than pop
+        const depth = (gx.group.position.z - GALAXY_FARZ) / galaxyRange; // 0 far -> 1 near
+        gx.group.children[0].material.opacity = Math.min(0.85, depth * 1.2);
+        gx.group.children[1].material.opacity = Math.min(0.9, depth * 1.3);
+      }
     }
 
     // Pointer parallax on camera
