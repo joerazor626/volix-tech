@@ -1,7 +1,8 @@
 // ============================================
 // Volix Tech — 3D hero scene
-// Original Three.js scene: glowing wireframe cube + drifting particle field.
-// Indigo palette. Degrades silently if WebGL is unavailable.
+// Scattered software "modules" assemble into a single glowing cube.
+// Assembly progress is driven by hero scroll position (0 = dispersed, 1 = built).
+// Original Three.js scene, indigo palette. Silent fallback if WebGL unavailable.
 // ============================================
 
 import * as THREE from 'three';
@@ -21,9 +22,8 @@ import * as THREE from 'three';
       powerPreference: 'high-performance',
     });
   } catch (e) {
-    // No WebGL -> CSS .scene-fallback remains visible
     canvas.style.display = 'none';
-    return;
+    return; // CSS .scene-fallback stays visible
   }
 
   const ACCENT = 0x6366f1;
@@ -33,55 +33,139 @@ import * as THREE from 'three';
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x0a0a0b, 0.06);
+  scene.fog = new THREE.FogExp2(0x0a0a0b, 0.055);
 
   const camera = new THREE.PerspectiveCamera(
     50, window.innerWidth / window.innerHeight, 0.1, 100
   );
-  camera.position.set(0, 0, 7);
+  camera.position.set(0, 0, 8);
 
-  // ----- Central glowing cube (solid core + wireframe shell + edge lines) -----
-  const cubeGroup = new THREE.Group();
+  // ----- Lighting (for the solid module faces) -----
+  scene.add(new THREE.AmbientLight(0x8088c0, 0.6));
+  const key = new THREE.DirectionalLight(0xa5b4fc, 1.1);
+  key.position.set(4, 6, 8);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x22d3ee, 0.5);
+  rim.position.set(-6, -3, -4);
+  scene.add(rim);
 
-  const coreGeo = new THREE.BoxGeometry(2.2, 2.2, 2.2);
-  const coreMat = new THREE.MeshBasicMaterial({
-    color: ACCENT, transparent: true, opacity: 0.18,
-  });
-  cubeGroup.add(new THREE.Mesh(coreGeo, coreMat));
+  // ----- Build the assembled cube out of NxNxN module blocks -----
+  const N = 3;                       // 3x3x3 = 27 modules
+  const UNIT = 1.15;                 // spacing between module centres
+  const SIZE = 1.02;                 // module box size (slight gap)
+  const half = (N - 1) / 2;
 
-  const shellGeo = new THREE.BoxGeometry(2.55, 2.55, 2.55, 4, 4, 4);
-  const shellMat = new THREE.MeshBasicMaterial({
-    color: ACCENT_LIGHT, wireframe: true, transparent: true, opacity: 0.35,
-  });
-  cubeGroup.add(new THREE.Mesh(shellGeo, shellMat));
+  const moduleGroup = new THREE.Group();
+  scene.add(moduleGroup);
 
-  const edges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(2.6, 2.6, 2.6)),
-    new THREE.LineBasicMaterial({ color: ACCENT_LIGHT, transparent: true, opacity: 0.9 })
-  );
-  cubeGroup.add(edges);
+  const boxGeo = new THREE.BoxGeometry(SIZE, SIZE, SIZE);
+  const edgeGeo = new THREE.EdgesGeometry(boxGeo);
 
-  cubeGroup.rotation.set(0.5, 0.8, 0);
-  scene.add(cubeGroup);
+  const modules = [];
+  let order = 0;
+  const total = N * N * N;
 
-  // ----- Drifting particle field -----
-  const COUNT = 900;
-  const positions = new Float32Array(COUNT * 3);
-  for (let i = 0; i < COUNT; i++) {
-    positions[i * 3 + 0] = (Math.random() - 0.5) * 26;
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 18;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 22 - 4;
+  // Deterministic pseudo-random (no Math.random dependency for stable layout feel)
+  function rand(seed) {
+    const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  for (let x = 0; x < N; x++) {
+    for (let y = 0; y < N; y++) {
+      for (let z = 0; z < N; z++) {
+        const seed = order + 1;
+
+        // Solid translucent body + bright wireframe edges = "module" look
+        const body = new THREE.Mesh(
+          boxGeo,
+          new THREE.MeshStandardMaterial({
+            color: ACCENT,
+            transparent: true,
+            opacity: 0.28,
+            metalness: 0.2,
+            roughness: 0.45,
+            emissive: ACCENT,
+            emissiveIntensity: 0.15,
+          })
+        );
+        const wire = new THREE.LineSegments(
+          edgeGeo,
+          new THREE.LineBasicMaterial({ color: ACCENT_LIGHT, transparent: true, opacity: 0.9 })
+        );
+        const m = new THREE.Group();
+        m.add(body);
+        m.add(wire);
+        moduleGroup.add(m);
+
+        // Assembled target position (forms the cube)
+        const target = new THREE.Vector3(
+          (x - half) * UNIT,
+          (y - half) * UNIT,
+          (z - half) * UNIT
+        );
+
+        // Scattered start: pushed far out along a random direction, random spin
+        const dir = new THREE.Vector3(
+          rand(seed) - 0.5,
+          rand(seed + 11) - 0.5,
+          rand(seed + 23) - 0.5
+        ).normalize();
+        const dist = 9 + rand(seed + 31) * 9;
+        const scatter = dir.clone().multiplyScalar(dist);
+
+        modules.push({
+          mesh: m,
+          target: target,
+          scatter: scatter,
+          spin: new THREE.Vector3(
+            (rand(seed + 41) - 0.5) * 6,
+            (rand(seed + 53) - 0.5) * 6,
+            (rand(seed + 67) - 0.5) * 6
+          ),
+          // stagger window: each module assembles over a slice of progress
+          start: (order / total) * 0.55,
+          end: (order / total) * 0.55 + 0.45,
+          opacity: body.material.opacity,
+          body: body.material,
+          wire: wire.material,
+        });
+        order++;
+      }
+    }
+  }
+
+  // ----- Drifting particle field (depth) -----
+  const PCOUNT = 700;
+  const positions = new Float32Array(PCOUNT * 3);
+  for (let i = 0; i < PCOUNT; i++) {
+    positions[i * 3 + 0] = (rand(i + 1) - 0.5) * 30;
+    positions[i * 3 + 1] = (rand(i + 100) - 0.5) * 20;
+    positions[i * 3 + 2] = (rand(i + 200) - 0.5) * 24 - 4;
   }
   const pGeo = new THREE.BufferGeometry();
   pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const particles = new THREE.Points(
     pGeo,
-    new THREE.PointsMaterial({
-      color: ACCENT_LIGHT, size: 0.045, transparent: true, opacity: 0.7,
-      sizeAttenuation: true,
-    })
+    new THREE.PointsMaterial({ color: ACCENT_LIGHT, size: 0.04, transparent: true, opacity: 0.6, sizeAttenuation: true })
   );
   scene.add(particles);
+
+  // ----- Scroll-driven assembly progress -----
+  // 0 at top of hero (dispersed) -> 1 once you've scrolled ~70% of a viewport.
+  let assembly = 0;          // smoothed value actually rendered
+  let assemblyTarget = 0;
+  // Baseline so the cube reads as "loosely formed" at the top of the hero,
+  // then fully locks in as you scroll.
+  const BASE = 0.45;
+  function computeAssembly() {
+    const vh = window.innerHeight || 1;
+    const y = window.scrollY || 0;
+    const scrolled = Math.min(y / (vh * 0.7), 1);
+    assemblyTarget = BASE + (1 - BASE) * scrolled;
+  }
+  computeAssembly();
+  window.addEventListener('scroll', computeAssembly, { passive: true });
 
   // ----- Pointer parallax -----
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -92,43 +176,65 @@ import * as THREE from 'three';
     }, { passive: true });
   }
 
-  // ----- Scroll-driven cube transform (sinks/recedes as you scroll the hero) -----
-  let scrollY = 0;
-  window.addEventListener('scroll', function () {
-    scrollY = window.scrollY || 0;
-  }, { passive: true });
-
-  // ----- Resize -----
   window.addEventListener('resize', function () {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    computeAssembly();
   });
 
-  // ----- Render loop -----
+  const _v = new THREE.Vector3();
+  function smoothstep(a, b, t) {
+    t = Math.max(0, Math.min(1, (t - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+
   const clock = new THREE.Clock();
   function animate() {
-    const dt = clock.getDelta();
+    const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
 
-    if (!reduceMotion) {
-      cubeGroup.rotation.y += dt * 0.25;
-      cubeGroup.rotation.x += dt * 0.08;
-      cubeGroup.position.y = Math.sin(t * 0.7) * 0.18;
-      particles.rotation.y += dt * 0.012;
+    // Ease the assembly value toward its scroll target
+    assembly += (assemblyTarget - assembly) * 0.08;
+
+    for (let i = 0; i < modules.length; i++) {
+      const md = modules[i];
+      // Per-module progress within its staggered window
+      const p = smoothstep(md.start, md.end, assembly);
+
+      // Position: scatter -> target
+      _v.copy(md.scatter).lerp(md.target, p);
+      md.mesh.position.copy(_v);
+
+      // Rotation: spin while scattered, settle to aligned when assembled
+      if (!reduceMotion) {
+        const spinAmt = (1 - p);
+        md.mesh.rotation.x = md.spin.x * spinAmt + t * 0.05 * p;
+        md.mesh.rotation.y = md.spin.y * spinAmt + t * 0.05 * p;
+        md.mesh.rotation.z = md.spin.z * spinAmt;
+      } else {
+        md.mesh.rotation.set(0, 0, 0);
+      }
+
+      // Fade/brighten as modules lock in
+      md.body.opacity = 0.10 + p * 0.30;
+      md.wire.opacity = 0.45 + p * 0.50;
     }
 
-    // Hero scroll: cube drifts down & back as the first viewport scrolls away
-    const vh = window.innerHeight || 1;
-    const p = Math.min(scrollY / vh, 1);
-    cubeGroup.position.z = -p * 6;
-    cubeGroup.position.x = p * 1.5;
+    // Whole assembled cube gently breathes/rotates once built
+    if (!reduceMotion) {
+      moduleGroup.rotation.y += dt * (0.12 + assembly * 0.18);
+      moduleGroup.rotation.x = Math.sin(t * 0.4) * 0.12 * assembly;
+      const breathe = 1 + Math.sin(t * 1.2) * 0.015 * assembly;
+      moduleGroup.scale.setScalar(breathe);
+      particles.rotation.y += dt * 0.01;
+    }
 
-    // Smooth pointer parallax
+    // Pointer parallax on camera
     pointer.x += (pointer.tx - pointer.x) * 0.05;
     pointer.y += (pointer.ty - pointer.y) * 0.05;
-    camera.position.x += (pointer.x * 0.6 - camera.position.x) * 0.05;
-    camera.position.y += (-pointer.y * 0.4 - camera.position.y) * 0.05;
+    camera.position.x += (pointer.x * 0.7 - camera.position.x) * 0.05;
+    camera.position.y += (-pointer.y * 0.5 - camera.position.y) * 0.05;
     camera.lookAt(0, 0, 0);
 
     renderer.render(scene, camera);
@@ -136,6 +242,5 @@ import * as THREE from 'three';
   }
   animate();
 
-  // Mark scene ready so CSS can fade the canvas in / hide the fallback
   document.body.classList.add('scene-ready');
 })();
