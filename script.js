@@ -1,94 +1,208 @@
 // ============================================
 // Volix Tech — Landing Page Scripts
+// Smooth scroll (Lenis) + intro loader + scroll-spy side-nav + reveals.
 // ============================================
 
 (function () {
     'use strict';
 
-    // Cursor glow effect (desktop only)
-    var glow = document.getElementById('cursor-glow');
-    if (glow && window.matchMedia('(pointer: fine)').matches) {
-        document.addEventListener('mousemove', function (e) {
-            glow.style.left = e.clientX + 'px';
-            glow.style.top = e.clientY + 'px';
-            glow.style.opacity = '1';
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ----------------------------------------
+    // Smooth scroll (Lenis lerp glide)
+    // ----------------------------------------
+    var lenis = null;
+    function initSmoothScroll() {
+        if (reduceMotion || typeof window.Lenis === 'undefined') return;
+        lenis = new window.Lenis({
+            duration: 1.15,
+            easing: function (t) { return 1 - Math.pow(1 - t, 3); },
+            smoothWheel: true,
         });
-        document.addEventListener('mouseleave', function () {
-            glow.style.opacity = '0';
-        });
+        function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+        requestAnimationFrame(raf);
     }
 
-    // Mobile nav toggle
-    var toggle = document.getElementById('nav-toggle');
-    var links = document.getElementById('nav-links');
-    if (toggle && links) {
-        toggle.addEventListener('click', function () {
-            links.classList.toggle('active');
+    function scrollToTarget(target) {
+        if (!target) return;
+        if (lenis) lenis.scrollTo(target, { offset: 0 });
+        else target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+
+    // In-page nav links glide
+    document.querySelectorAll('[data-nav]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var id = a.getAttribute('href');
+            if (!id || id.charAt(0) !== '#' || id.length < 2) return;
+            var target = document.querySelector(id);
+            if (!target) return;
+            e.preventDefault();
+            scrollToTarget(target);
         });
-        links.querySelectorAll('a').forEach(function (a) {
+    });
+
+    // ----------------------------------------
+    // Intro loader (0 -> 100)
+    // ----------------------------------------
+    function initIntro() {
+        var loader = document.getElementById('loader');
+        if (!loader) { document.body.classList.add('loaded'); return; }
+        if (reduceMotion) {
+            loader.style.display = 'none';
+            document.body.classList.add('loaded');
+            return;
+        }
+        var count = document.getElementById('loader-count');
+        var fill = document.getElementById('loader-fill');
+        var status = document.getElementById('loader-status');
+        var pct = 0;
+        var tick = setInterval(function () {
+            pct = Math.min(100, pct + Math.ceil(Math.random() * 8) + 4);
+            if (count) count.textContent = pct;
+            if (fill) fill.style.width = pct + '%';
+            if (pct >= 100) {
+                clearInterval(tick);
+                if (status) status.textContent = 'Ready to explore';
+                setTimeout(function () {
+                    loader.classList.add('loader-done');
+                    document.body.classList.add('loaded');
+                }, 350);
+            }
+        }, 85);
+    }
+
+    // ----------------------------------------
+    // Full-screen menu overlay
+    // ----------------------------------------
+    var menuToggle = document.getElementById('menu-toggle');
+    var menuOverlay = document.getElementById('menu-overlay');
+    var menuLabel = menuToggle && menuToggle.querySelector('.menu-label');
+
+    function setMenu(open) {
+        if (!menuToggle || !menuOverlay) return;
+        menuOverlay.classList.toggle('menu-open', open);
+        menuToggle.classList.toggle('is-active', open);
+        document.body.classList.toggle('menu-active', open);
+        menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menuOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (menuLabel) menuLabel.textContent = open ? 'CLOSE' : 'MENU';
+        // Lenis can keep scrolling underneath the overlay — stop/start it
+        if (lenis) { open ? lenis.stop() : lenis.start(); }
+    }
+
+    if (menuToggle && menuOverlay) {
+        menuToggle.addEventListener('click', function () {
+            setMenu(!menuOverlay.classList.contains('menu-open'));
+        });
+        // Overlay links: close the menu first (restarts Lenis), then scroll.
+        // The shared [data-nav] handler calls preventDefault, so we own the scroll here.
+        menuOverlay.querySelectorAll('a[data-nav]').forEach(function (a) {
             a.addEventListener('click', function () {
-                links.classList.remove('active');
+                var target = document.querySelector(a.getAttribute('href'));
+                setMenu(false);
+                if (!target) return;
+                requestAnimationFrame(function () { scrollToTarget(target); });
             });
         });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') setMenu(false);
+        });
     }
 
+    // ----------------------------------------
+    // Scroll-spy: highlight active section in side-nav
+    // ----------------------------------------
+    function initScrollSpy() {
+        var items = Array.prototype.slice.call(document.querySelectorAll('.sidenav-item'));
+        if (!items.length) return;
+        var byId = {};
+        items.forEach(function (it) { byId[it.getAttribute('data-target')] = it; });
+
+        var spy = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    items.forEach(function (it) { it.classList.remove('active'); });
+                    var active = byId[entry.target.id];
+                    if (active) active.classList.add('active');
+                }
+            });
+        }, { threshold: 0.5, rootMargin: '-20% 0px -30% 0px' });
+
+        ['hero', 'projects', 'expertise', 'team', 'clients', 'contact'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) spy.observe(el);
+        });
+    }
+
+    // ----------------------------------------
     // Stat counter animation
+    // ----------------------------------------
     function animateCounters() {
         document.querySelectorAll('[data-count]').forEach(function (el) {
             if (el.dataset.animated) return;
-
             var rect = el.getBoundingClientRect();
             if (rect.top > window.innerHeight || rect.bottom < 0) return;
 
             el.dataset.animated = 'true';
             var target = parseInt(el.dataset.count, 10);
-            var duration = 1200;
+            var duration = 1400;
             var start = performance.now();
-
             function update(now) {
                 var progress = Math.min((now - start) / duration, 1);
                 var eased = 1 - Math.pow(1 - progress, 3);
                 el.textContent = Math.round(eased * target);
                 if (progress < 1) requestAnimationFrame(update);
             }
-
             requestAnimationFrame(update);
         });
     }
 
-    // Intersection observer for scroll animations
-    var observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
+    // ----------------------------------------
+    // Scroll-triggered reveals — slow clip/slide, coordinated stagger
+    // ----------------------------------------
+    function initReveals() {
+        if (reduceMotion) return;
+        var revealEls = Array.prototype.slice.call(
+            document.querySelectorAll(
+                '.project-card, .expertise-group, .team-card, .client-card, .contact-card, .section-header'
+            )
+        );
+        var groupCounters = {};
+        revealEls.forEach(function (el) {
+            el.classList.add('reveal');
+            var key = (el.parentNode && el.parentNode.className) || 'root';
+            groupCounters[key] = groupCounters[key] || 0;
+            el.style.setProperty('--reveal-delay', (groupCounters[key] * 110) + 'ms');
+            groupCounters[key]++;
         });
-    }, { threshold: 0.1 });
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('reveal-in');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+        revealEls.forEach(function (el) { observer.observe(el); });
+    }
 
-    document.querySelectorAll('.project-card, .expertise-group, .team-card, .client-card, .contact-card').forEach(function (el) {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
+    // ----------------------------------------
+    // Top bar settles on scroll
+    // ----------------------------------------
+    var topbar = document.getElementById('topbar');
+    if (topbar) {
+        window.addEventListener('scroll', function () {
+            topbar.classList.toggle('topbar-scrolled', window.scrollY > 50);
+        }, { passive: true });
+    }
 
-    // Add visible class handler
-    var style = document.createElement('style');
-    style.textContent = '.visible { opacity: 1 !important; transform: translateY(0) !important; }';
-    document.head.appendChild(style);
-
-    // Run counter animation on scroll
+    // ----------------------------------------
+    // Boot
+    // ----------------------------------------
+    initSmoothScroll();
+    initIntro();
+    initScrollSpy();
+    initReveals();
     window.addEventListener('scroll', animateCounters, { passive: true });
     animateCounters();
-
-    // Nav background on scroll
-    var nav = document.getElementById('nav');
-    window.addEventListener('scroll', function () {
-        if (window.scrollY > 50) {
-            nav.style.borderBottomColor = 'rgba(30, 30, 34, 0.8)';
-        } else {
-            nav.style.borderBottomColor = 'var(--border)';
-        }
-    }, { passive: true });
 })();
