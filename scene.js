@@ -65,43 +65,10 @@ import * as THREE from 'three';
   let order = 0;
   const total = N * N * N;
 
-  // Capability labels shown on the assembled modules
-  const LABELS = [
-    'API', 'MOBILE APP', 'WEB APP', 'SSL', 'AI', 'AUTOMATION',
-    'DATABASE', 'AUTH', 'PAYMENTS', 'CLOUD', 'REST', 'QUEUE',
-    'ANALYTICS', 'CACHE', 'GEOFENCE', 'PUSH', 'PDF', 'SEARCH',
-    'DEVOPS', 'CI/CD', 'BACKUP', 'MONITOR', 'WEBHOOK', 'SDK',
-    'OAUTH', 'GRAPHQL', 'STORAGE',
-  ];
-
   // Deterministic pseudo-random (no Math.random dependency for stable layout feel)
   function rand(seed) {
     const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
     return x - Math.floor(x);
-  }
-
-  // Build a sprite whose texture is the given label text (transparent background)
-  function makeLabel(text) {
-    const c = document.createElement('canvas');
-    const w = 256, h = 64;
-    c.width = w; c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, w, h);
-    ctx.font = '600 30px "JetBrains Mono", monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(129,140,248,0.9)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#e6e8ff';
-    ctx.fillText(text, w / 2, h / 2);
-    const tex = new THREE.CanvasTexture(c);
-    tex.anisotropy = 4;
-    const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false })
-    );
-    sprite.scale.set(1.05, 0.26, 1);
-    sprite.renderOrder = 10;
-    return sprite;
   }
 
   for (let x = 0; x < N; x++) {
@@ -129,12 +96,6 @@ import * as THREE from 'three';
         const m = new THREE.Group();
         m.add(body);
         m.add(wire);
-
-        // Label sprite, parked just in front of the module's front face
-        const label = makeLabel(LABELS[order % LABELS.length]);
-        label.position.set(0, 0, SIZE / 2 + 0.02);
-        m.add(label);
-
         moduleGroup.add(m);
 
         // Assembled target position (forms the cube)
@@ -168,7 +129,6 @@ import * as THREE from 'three';
           opacity: body.material.opacity,
           body: body.material,
           wire: wire.material,
-          label: label.material,
         });
         order++;
       }
@@ -194,21 +154,46 @@ import * as THREE from 'three';
   moduleGroup.add(frameGlow);
   moduleGroup.add(frameCore);
 
-  // ----- Drifting particle field (depth) -----
-  const PCOUNT = 700;
-  const positions = new Float32Array(PCOUNT * 3);
-  for (let i = 0; i < PCOUNT; i++) {
-    positions[i * 3 + 0] = (rand(i + 1) - 0.5) * 30;
-    positions[i * 3 + 1] = (rand(i + 100) - 0.5) * 20;
-    positions[i * 3 + 2] = (rand(i + 200) - 0.5) * 24 - 4;
+  // ----- Starfield: layered "universe" drifting in depth -----
+  // Each layer has its own count, spread, star size, colour and drift speed.
+  // Stars wrap around in Z so the field flows endlessly toward the camera.
+  const STAR_DEPTH = 60;               // Z extent stars travel through
+  function makeStarLayer(count, spread, size, color, opacity, speed, seedBase) {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3 + 0] = (rand(seedBase + i * 3) - 0.5) * spread;
+      pos[i * 3 + 1] = (rand(seedBase + i * 3 + 1) - 0.5) * spread * 0.7;
+      pos[i * 3 + 2] = (rand(seedBase + i * 3 + 2) - 0.5) * STAR_DEPTH;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({
+        color: color, size: size, transparent: true, opacity: opacity,
+        sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      })
+    );
+    scene.add(pts);
+    return { points: pts, geo: g, count: count, speed: speed };
   }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const particles = new THREE.Points(
-    pGeo,
-    new THREE.PointsMaterial({ color: ACCENT_LIGHT, size: 0.04, transparent: true, opacity: 0.6, sizeAttenuation: true })
+
+  const starLayers = [
+    makeStarLayer(420, 70, 0.05, 0x818cf8, 0.85, 2.4, 1000),   // near — bright, fast
+    makeStarLayer(620, 90, 0.032, 0xc7d2fe, 0.6, 1.4, 4000),   // mid
+    makeStarLayer(900, 120, 0.02, 0x8b93c9, 0.4, 0.7, 8000),   // far — dim, slow
+  ];
+
+  // Faint nebula glow drifting behind the stars for "universe" depth
+  const nebula = new THREE.Mesh(
+    new THREE.PlaneGeometry(160, 100),
+    new THREE.MeshBasicMaterial({
+      color: ACCENT, transparent: true, opacity: 0.05,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
   );
-  scene.add(particles);
+  nebula.position.z = -30;
+  scene.add(nebula);
 
   // ----- Scroll-driven assembly progress -----
   // 0 at top of hero (dispersed) -> 1 once you've scrolled ~70% of a viewport.
@@ -278,8 +263,6 @@ import * as THREE from 'three';
       // Fade/brighten as modules lock in
       md.body.opacity = 0.10 + p * 0.30;
       md.wire.opacity = 0.45 + p * 0.50;
-      // Labels appear only once a module is nearly settled
-      md.label.opacity = smoothstep(0.7, 1, p);
     }
 
     // Glowing outline frame ramps in over the last stretch of assembly
@@ -293,7 +276,22 @@ import * as THREE from 'three';
       moduleGroup.rotation.x = Math.sin(t * 0.4) * 0.12 * assembly;
       const breathe = 1 + Math.sin(t * 1.2) * 0.015 * assembly;
       moduleGroup.scale.setScalar(breathe);
-      particles.rotation.y += dt * 0.01;
+    }
+
+    // Starfield: flow stars toward the camera and wrap, like moving through space
+    if (!reduceMotion) {
+      const halfDepth = STAR_DEPTH / 2;
+      for (let l = 0; l < starLayers.length; l++) {
+        const layer = starLayers[l];
+        const arr = layer.geo.attributes.position.array;
+        for (let i = 2; i < arr.length; i += 3) {
+          arr[i] += layer.speed * dt;          // drift toward camera (+Z)
+          if (arr[i] > halfDepth) arr[i] -= STAR_DEPTH; // wrap to the back
+        }
+        layer.geo.attributes.position.needsUpdate = true;
+        layer.points.rotation.z += dt * 0.01 * (l + 1); // slow swirl per layer
+      }
+      nebula.rotation.z += dt * 0.008;
     }
 
     // Pointer parallax on camera
