@@ -293,8 +293,9 @@ import * as THREE from 'three';
   computeAssembly();
   window.addEventListener('scroll', computeAssembly, { passive: true });
 
-  // ----- Pointer parallax -----
+  // ----- Pointer steering -----
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+  const lookTarget = new THREE.Vector3(0, 0, 0);   // smoothed camera aim point
   if (window.matchMedia('(pointer: fine)').matches) {
     window.addEventListener('mousemove', function (e) {
       pointer.tx = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -407,12 +408,22 @@ import * as THREE from 'three';
       }
     }
 
-    // Pointer parallax on camera
-    pointer.x += (pointer.tx - pointer.x) * 0.05;
-    pointer.y += (pointer.ty - pointer.y) * 0.05;
-    camera.position.x += (pointer.x * 0.7 - camera.position.x) * 0.05;
-    camera.position.y += (-pointer.y * 0.5 - camera.position.y) * 0.05;
-    camera.lookAt(0, 0, 0);
+    // Pointer steering: the camera banks toward the cursor and aims its
+    // gaze in that direction, so whatever is over there (a galaxy) swings
+    // into centre view and feels pulled forward. The cube stays the anchor.
+    pointer.x += (pointer.tx - pointer.x) * 0.04;   // smooth, gentle
+    pointer.y += (pointer.ty - pointer.y) * 0.04;
+    // Slight positional parallax (keeps the cube as the pivot)
+    camera.position.x += (pointer.x * 0.9 - camera.position.x) * 0.04;
+    camera.position.y += (-pointer.y * 0.7 - camera.position.y) * 0.04;
+    // Aim point leans toward the cursor and outward into space, but only as
+    // the cursor moves AWAY from centre — so a still/centred cursor keeps the
+    // cube framed dead-centre, while aiming at a galaxy turns the view there.
+    var aim = Math.min(Math.sqrt(pointer.x * pointer.x + pointer.y * pointer.y), 1);
+    lookTarget.x += (pointer.x * 9 - lookTarget.x) * 0.04;
+    lookTarget.y += (-pointer.y * 6 - lookTarget.y) * 0.04;
+    lookTarget.z += (-aim * 16 - lookTarget.z) * 0.04;  // lean outward only when steering
+    camera.lookAt(lookTarget);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
