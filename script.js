@@ -111,8 +111,9 @@
 
     // ----------------------------------------
     // Background music toggle
-    // Autoplay is blocked until a user gesture, so music starts on the
-    // first toggle click. Fades in/out for a smoother on/off.
+    // Browsers block autoplay until a user gesture, so we kick it off on the
+    // first interaction anywhere (click / scroll / tap / key). The manual
+    // toggle still works and cancels the auto-start if used first.
     // ----------------------------------------
     function initMusic() {
         var audio = document.getElementById('bg-music');
@@ -152,7 +153,25 @@
             }
         }
 
-        btn.addEventListener('click', function () { setPlaying(!playing); });
+        // Auto-start on the first user interaction (one-shot).
+        var armed = true;
+        var events = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'];
+        var opts = { passive: true };
+        function disarm() {
+            armed = false;
+            events.forEach(function (ev) { window.removeEventListener(ev, autoStart, opts); });
+        }
+        function autoStart() {
+            if (!armed) return;
+            disarm();
+            if (!playing) setPlaying(true);
+        }
+        events.forEach(function (ev) { window.addEventListener(ev, autoStart, opts); });
+
+        btn.addEventListener('click', function () {
+            disarm();               // an explicit click takes over the auto-start
+            setPlaying(!playing);
+        });
     }
 
     // ----------------------------------------
