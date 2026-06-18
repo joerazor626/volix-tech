@@ -187,14 +187,19 @@
     }
 
     // ----------------------------------------
-    // Top bar settles on scroll
+    // Top bar + scene dimming on scroll
+    // The 3D hero scene fades back once you scroll past the hero so it
+    // never competes with section content for legibility.
     // ----------------------------------------
     var topbar = document.getElementById('topbar');
-    if (topbar) {
-        window.addEventListener('scroll', function () {
-            topbar.classList.toggle('topbar-scrolled', window.scrollY > 50);
-        }, { passive: true });
+    function onScroll() {
+        var y = window.scrollY || 0;
+        if (topbar) topbar.classList.toggle('topbar-scrolled', y > 50);
+        // Past ~70% of the first viewport, mark body so the canvas dims
+        document.body.classList.toggle('past-hero', y > window.innerHeight * 0.7);
     }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 
     // ----------------------------------------
     // Boot

@@ -50,6 +50,8 @@ body {
     pointer-events: none;
 }
 body.scene-ready .scene-canvas { opacity: 1; }
+/* Dim the 3D scene once past the hero so it never fights section content */
+body.scene-ready.past-hero .scene-canvas { opacity: 0.12; }
 
 .scene-fallback {
     position: fixed;
@@ -377,9 +379,13 @@ h3 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 
 /* ---------- Sections ---------- */
-.section { position: relative; z-index: 2; padding: 130px 0; }
+.section { position: relative; z-index: 2; padding: 130px 0; background: var(--bg); }
 .section-dark { background: linear-gradient(var(--bg-section), var(--bg)); }
 .section + .section { border-top: 1px solid var(--border); }
+/* First section after the hero eases from transparent into the solid backdrop,
+   so the cube doesn't hard-cut but content below sits on a clean base */
+#projects { background: linear-gradient(180deg, rgba(10,10,11,0) 0%, var(--bg) 18%); }
+.footer { background: var(--bg); }
 
 .section-header { text-align: left; max-width: 680px; margin-bottom: 72px; }
 .section-tag {
