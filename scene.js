@@ -129,6 +129,7 @@ import * as THREE from 'three';
           opacity: body.material.opacity,
           body: body.material,
           wire: wire.material,
+          flash: 0,
         });
         order++;
       }
@@ -153,6 +154,60 @@ import * as THREE from 'three';
   frameGlow.scale.setScalar(1.04);
   moduleGroup.add(frameGlow);
   moduleGroup.add(frameCore);
+
+  // ----- "Ping" signals: random module pairs fire a pulse at each other -----
+  // A small pool of reusable links. Each active link draws a faint connecting
+  // line + a bright dot travelling from A to B, and flashes both endpoints.
+  const PING_POOL = 6;
+  const pings = [];
+  for (let i = 0; i < PING_POOL; i++) {
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+    const line = new THREE.Line(
+      lineGeo,
+      new THREE.LineBasicMaterial({
+        color: 0xc7d2fe, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+    );
+    const dot = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTexPlaceholder(), color: 0xe0e7ff,
+      transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    dot.scale.set(0.45, 0.45, 1);
+    moduleGroup.add(line);
+    moduleGroup.add(dot);
+    pings.push({ line: line, lineGeo: lineGeo, dot: dot, active: false, a: null, b: null, t: 0, dur: 1 });
+  }
+  let nextPingAt = 1.5;   // seconds until the next ping fires
+
+  // Soft round sprite for the travelling pulse dot (built once, reused)
+  function glowTexPlaceholder() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.4, 'rgba(199,210,254,0.7)');
+    g.addColorStop(1, 'rgba(129,140,248,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(c);
+  }
+
+  function firePing() {
+    const slot = pings.find(function (p) { return !p.active; });
+    if (!slot) return;
+    // Pick two distinct random modules
+    const ai = Math.floor(rand(nextPingAt * 13.7 + 1) * modules.length);
+    let bi = Math.floor(rand(nextPingAt * 31.3 + 7) * modules.length);
+    if (bi === ai) bi = (bi + 1) % modules.length;
+    slot.a = modules[ai];
+    slot.b = modules[bi];
+    slot.t = 0;
+    slot.dur = 0.7 + rand(nextPingAt * 5.1) * 0.8;   // 0.7–1.5s travel
+    slot.active = true;
+  }
 
   // ----- Starfield: layered "universe" drifting in depth -----
   // Each layer has its own count, spread, star size, colour and drift speed.
@@ -343,15 +398,52 @@ import * as THREE from 'three';
         md.mesh.rotation.set(0, 0, 0);
       }
 
-      // Fade/brighten as modules lock in
-      md.body.opacity = 0.10 + p * 0.30;
-      md.wire.opacity = 0.45 + p * 0.50;
+      // Fade/brighten as modules lock in, plus any active ping flash
+      if (md.flash > 0) md.flash = Math.max(0, md.flash - dt * 2.2);
+      md.body.opacity = 0.10 + p * 0.30 + md.flash * 0.5;
+      md.wire.opacity = 0.45 + p * 0.50 + md.flash * 0.5;
     }
 
     // Glowing outline frame ramps in over the last stretch of assembly
     const frameP = smoothstep(0.55, 1, assembly);
     frameCore.material.opacity = frameP * 0.9;
     frameGlow.material.opacity = frameP * (0.35 + Math.sin(t * 1.6) * 0.12);
+
+    // ----- Ping signals between random modules (once mostly assembled) -----
+    if (!reduceMotion && assembly > 0.55) {
+      if (t >= nextPingAt) {
+        firePing();
+        nextPingAt = t + 0.6 + rand(t * 7.3) * 1.6;   // random cadence ~0.6–2.2s
+      }
+      for (let i = 0; i < pings.length; i++) {
+        const pg = pings[i];
+        if (!pg.active) continue;
+        pg.t += dt / pg.dur;
+        const a = pg.a.target, b = pg.b.target;
+        // Connecting line
+        const arr = pg.lineGeo.attributes.position.array;
+        arr[0] = a.x; arr[1] = a.y; arr[2] = a.z;
+        arr[3] = b.x; arr[4] = b.y; arr[5] = b.z;
+        pg.lineGeo.attributes.position.needsUpdate = true;
+        // Pulse intensity rises then falls over the link's life
+        const env = Math.sin(Math.min(pg.t, 1) * Math.PI);
+        pg.line.material.opacity = env * 0.5 * frameP;
+        // Travelling dot from A -> B
+        _v.copy(a).lerp(b, Math.min(pg.t, 1));
+        pg.dot.position.copy(_v);
+        pg.dot.material.opacity = env * frameP;
+        const s = 0.4 + env * 0.4;
+        pg.dot.scale.set(s, s, 1);
+        // Flash the endpoints as the pulse departs / arrives
+        if (pg.t < 0.12) pg.a.flash = 1;
+        if (pg.t > 0.88 && pg.t < 1) pg.b.flash = 1;
+        if (pg.t >= 1) {
+          pg.active = false;
+          pg.line.material.opacity = 0;
+          pg.dot.material.opacity = 0;
+        }
+      }
+    }
 
     // Whole assembled cube gently breathes/rotates once built
     if (!reduceMotion) {
