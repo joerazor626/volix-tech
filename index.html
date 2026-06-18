@@ -31,6 +31,9 @@
     />
   </head>
   <body>
+    <!-- Background music -->
+    <audio id="bg-music" src="assets/dawn.mp3" loop preload="auto"></audio>
+
     <!-- Intro loader -->
     <div class="loader" id="loader">
       <div class="loader-bar"><span class="loader-fill" id="loader-fill"></span></div>
@@ -52,6 +55,12 @@
       <span class="hud-corner hud-bl"></span>
       <span class="hud-corner hud-br"></span>
     </div>
+
+    <!-- Sound toggle -->
+    <button class="sound-toggle" id="sound-toggle" aria-label="Toggle music" aria-pressed="false">
+      <span class="sound-bars" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      <span class="sound-label">SOUND OFF</span>
+    </button>
 
     <!-- Header -->
     <header class="topbar" id="topbar">

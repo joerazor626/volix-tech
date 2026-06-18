@@ -110,6 +110,52 @@
     }
 
     // ----------------------------------------
+    // Background music toggle
+    // Autoplay is blocked until a user gesture, so music starts on the
+    // first toggle click. Fades in/out for a smoother on/off.
+    // ----------------------------------------
+    function initMusic() {
+        var audio = document.getElementById('bg-music');
+        var btn = document.getElementById('sound-toggle');
+        if (!audio || !btn) return;
+        var label = btn.querySelector('.sound-label');
+        var fade = null;
+        var TARGET = 0.45;          // comfortable background level
+        audio.volume = 0;
+
+        function fadeTo(vol, onDone) {
+            if (fade) clearInterval(fade);
+            fade = setInterval(function () {
+                var d = vol - audio.volume;
+                if (Math.abs(d) < 0.03) {
+                    audio.volume = vol;
+                    clearInterval(fade); fade = null;
+                    if (onDone) onDone();
+                } else {
+                    audio.volume = Math.max(0, Math.min(1, audio.volume + d * 0.2));
+                }
+            }, 40);
+        }
+
+        var playing = false;
+        function setPlaying(on) {
+            playing = on;
+            btn.classList.toggle('is-playing', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            if (label) label.textContent = on ? 'SOUND ON' : 'SOUND OFF';
+            if (on) {
+                var pr = audio.play();
+                if (pr && pr.catch) pr.catch(function () {/* needs user gesture */});
+                fadeTo(TARGET);
+            } else {
+                fadeTo(0, function () { audio.pause(); });
+            }
+        }
+
+        btn.addEventListener('click', function () { setPlaying(!playing); });
+    }
+
+    // ----------------------------------------
     // Scroll-spy: highlight active section in side-nav
     // ----------------------------------------
     function initScrollSpy() {
@@ -221,6 +267,7 @@
     initIntro();
     initScrollSpy();
     initReveals();
+    initMusic();
     window.addEventListener('scroll', animateCounters, { passive: true });
     animateCounters();
 })();
