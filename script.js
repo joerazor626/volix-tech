@@ -118,20 +118,33 @@
         var byId = {};
         items.forEach(function (it) { byId[it.getAttribute('data-target')] = it; });
 
-        var spy = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (entry.isIntersecting) {
-                    items.forEach(function (it) { it.classList.remove('active'); });
-                    var active = byId[entry.target.id];
-                    if (active) active.classList.add('active');
-                }
-            });
-        }, { threshold: 0.5, rootMargin: '-20% 0px -30% 0px' });
+        var ids = ['hero', 'projects', 'expertise', 'team', 'clients', 'contact'];
+        var sections = ids
+            .map(function (id) { return document.getElementById(id); })
+            .filter(Boolean);
+        if (!sections.length) return;
 
-        ['hero', 'projects', 'expertise', 'team', 'clients', 'contact'].forEach(function (id) {
-            var el = document.getElementById(id);
-            if (el) spy.observe(el);
-        });
+        function setActive(id) {
+            items.forEach(function (it) {
+                it.classList.toggle('active', it.getAttribute('data-target') === id);
+            });
+        }
+
+        // Pick the section whose top has passed a line ~38% down the viewport.
+        // This works even when a section is taller than the viewport (Projects,
+        // Expertise), where a visibility-threshold observer never fires.
+        function update() {
+            var line = window.innerHeight * 0.38;
+            var current = sections[0];
+            for (var i = 0; i < sections.length; i++) {
+                if (sections[i].getBoundingClientRect().top <= line) current = sections[i];
+            }
+            setActive(current.id);
+        }
+
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update, { passive: true });
+        update();
     }
 
     // ----------------------------------------
