@@ -196,17 +196,25 @@ import * as THREE from 'three';
   scene.add(nebula);
 
   // ----- Scroll-driven assembly progress -----
-  // 0 at top of hero (dispersed) -> 1 once you've scrolled ~70% of a viewport.
+  // Spread the build across the WHOLE page: 0 at the very top (dispersed),
+  // 1 at the bottom (cube fully formed + glowing). The modules lock in
+  // section by section as you scroll down.
   let assembly = 0;          // smoothed value actually rendered
   let assemblyTarget = 0;
-  // Baseline so the cube reads as "loosely formed" at the top of the hero,
-  // then fully locks in as you scroll.
-  const BASE = 0.45;
+  let scrollVel = 0;         // normalised scroll speed -> drives starfield warp
+  let warp = 0;              // smoothed warp factor used by the render loop
+  // Small baseline so the cube reads as "seeded" at the very top.
+  const BASE = 0.08;
+  let lastY = window.scrollY || 0;
   function computeAssembly() {
-    const vh = window.innerHeight || 1;
+    const doc = document.documentElement;
+    const max = (doc.scrollHeight - window.innerHeight) || 1;
     const y = window.scrollY || 0;
-    const scrolled = Math.min(y / (vh * 0.7), 1);
+    const scrolled = Math.min(y / max, 1);           // 0..1 across full page
     assemblyTarget = BASE + (1 - BASE) * scrolled;
+    // Track instantaneous scroll distance for the space-warp effect
+    scrollVel = Math.min(Math.abs(y - lastY) / 60, 1);
+    lastY = y;
   }
   computeAssembly();
   window.addEventListener('scroll', computeAssembly, { passive: true });
@@ -275,22 +283,33 @@ import * as THREE from 'three';
       moduleGroup.rotation.y += dt * (0.12 + assembly * 0.18);
       moduleGroup.rotation.x = Math.sin(t * 0.4) * 0.12 * assembly;
       const breathe = 1 + Math.sin(t * 1.2) * 0.015 * assembly;
-      moduleGroup.scale.setScalar(breathe);
+      // Keep the cube smaller/further back while dispersed (so it doesn't
+      // overlap the hero text), growing forward as it assembles.
+      const grow = 0.62 + assembly * 0.38;
+      moduleGroup.scale.setScalar(breathe * grow);
+      moduleGroup.position.z = -3.5 * (1 - assembly);
     }
 
-    // Starfield: flow stars toward the camera and wrap, like moving through space
+    // Starfield: flow stars toward the camera. Scrolling accelerates the
+    // flow (warp), so moving down the page feels like travelling through space.
+    warp += (scrollVel - warp) * 0.06;           // smooth the warp factor
+    scrollVel *= 0.9;                            // decay between scroll events
     if (!reduceMotion) {
       const halfDepth = STAR_DEPTH / 2;
+      const boost = 1 + warp * 14;               // up to ~15x speed while scrolling
       for (let l = 0; l < starLayers.length; l++) {
         const layer = starLayers[l];
         const arr = layer.geo.attributes.position.array;
+        const step = layer.speed * boost * dt;
         for (let i = 2; i < arr.length; i += 3) {
-          arr[i] += layer.speed * dt;          // drift toward camera (+Z)
+          arr[i] += step;                        // drift toward camera (+Z)
           if (arr[i] > halfDepth) arr[i] -= STAR_DEPTH; // wrap to the back
         }
         layer.geo.attributes.position.needsUpdate = true;
         layer.points.rotation.z += dt * 0.01 * (l + 1); // slow swirl per layer
       }
+      // Stars stretch into streaks during warp for the "into space" feel
+      starLayers[0].points.material.size = 0.05 * (1 + warp * 2.5);
       nebula.rotation.z += dt * 0.008;
     }
 
