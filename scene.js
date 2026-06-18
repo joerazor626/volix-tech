@@ -65,10 +65,43 @@ import * as THREE from 'three';
   let order = 0;
   const total = N * N * N;
 
+  // Capability labels shown on the assembled modules
+  const LABELS = [
+    'API', 'MOBILE APP', 'WEB APP', 'SSL', 'AI', 'AUTOMATION',
+    'DATABASE', 'AUTH', 'PAYMENTS', 'CLOUD', 'REST', 'QUEUE',
+    'ANALYTICS', 'CACHE', 'GEOFENCE', 'PUSH', 'PDF', 'SEARCH',
+    'DEVOPS', 'CI/CD', 'BACKUP', 'MONITOR', 'WEBHOOK', 'SDK',
+    'OAUTH', 'GRAPHQL', 'STORAGE',
+  ];
+
   // Deterministic pseudo-random (no Math.random dependency for stable layout feel)
   function rand(seed) {
     const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
     return x - Math.floor(x);
+  }
+
+  // Build a sprite whose texture is the given label text (transparent background)
+  function makeLabel(text) {
+    const c = document.createElement('canvas');
+    const w = 256, h = 64;
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = '600 30px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(129,140,248,0.9)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#e6e8ff';
+    ctx.fillText(text, w / 2, h / 2);
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0, depthTest: false })
+    );
+    sprite.scale.set(1.05, 0.26, 1);
+    sprite.renderOrder = 10;
+    return sprite;
   }
 
   for (let x = 0; x < N; x++) {
@@ -96,6 +129,12 @@ import * as THREE from 'three';
         const m = new THREE.Group();
         m.add(body);
         m.add(wire);
+
+        // Label sprite, parked just in front of the module's front face
+        const label = makeLabel(LABELS[order % LABELS.length]);
+        label.position.set(0, 0, SIZE / 2 + 0.02);
+        m.add(label);
+
         moduleGroup.add(m);
 
         // Assembled target position (forms the cube)
@@ -129,11 +168,31 @@ import * as THREE from 'three';
           opacity: body.material.opacity,
           body: body.material,
           wire: wire.material,
+          label: label.material,
         });
         order++;
       }
     }
   }
+
+  // ----- Glowing outline frame around the fully assembled cube -----
+  // Two passes: a bright core line + a fatter soft "glow" line behind it.
+  const cubeSpan = N * UNIT;            // outer extent of the assembled cube
+  const frameGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(cubeSpan, cubeSpan, cubeSpan));
+  const frameCore = new THREE.LineSegments(
+    frameGeo,
+    new THREE.LineBasicMaterial({ color: 0xc7d2fe, transparent: true, opacity: 0 })
+  );
+  const frameGlow = new THREE.LineSegments(
+    frameGeo,
+    new THREE.LineBasicMaterial({
+      color: ACCENT_LIGHT, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  frameGlow.scale.setScalar(1.04);
+  moduleGroup.add(frameGlow);
+  moduleGroup.add(frameCore);
 
   // ----- Drifting particle field (depth) -----
   const PCOUNT = 700;
@@ -219,7 +278,14 @@ import * as THREE from 'three';
       // Fade/brighten as modules lock in
       md.body.opacity = 0.10 + p * 0.30;
       md.wire.opacity = 0.45 + p * 0.50;
+      // Labels appear only once a module is nearly settled
+      md.label.opacity = smoothstep(0.7, 1, p);
     }
+
+    // Glowing outline frame ramps in over the last stretch of assembly
+    const frameP = smoothstep(0.55, 1, assembly);
+    frameCore.material.opacity = frameP * 0.9;
+    frameGlow.material.opacity = frameP * (0.35 + Math.sin(t * 1.6) * 0.12);
 
     // Whole assembled cube gently breathes/rotates once built
     if (!reduceMotion) {
